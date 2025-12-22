@@ -16,8 +16,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import redis.Database;
-import redis.RespWriter;
-import redis.Value;
+import redis.resp.RespWriter;
+import redis.resp.Value;
 
 public class CommandsTest {
 

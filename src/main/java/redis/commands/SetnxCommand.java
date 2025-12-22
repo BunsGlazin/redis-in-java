@@ -4,8 +4,8 @@ import java.io.*;
 import java.util.*;
 
 import redis.Database;
-import redis.RespWriter;
-import redis.Value;
+import redis.resp.RespWriter;
+import redis.resp.Value;
 
 import static redis.utils.CommandUtils.arity;
 

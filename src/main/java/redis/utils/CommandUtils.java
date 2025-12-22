@@ -1,9 +1,9 @@
 package redis.utils;
 
-import redis.RespWriter;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
+
+import redis.resp.RespWriter;
 
 public class CommandUtils {
 

@@ -1,4 +1,4 @@
-package redis;
+package redis.resp;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

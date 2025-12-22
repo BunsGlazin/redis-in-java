@@ -1,8 +1,9 @@
 package redis.commands;
 
 import redis.Database;
-import redis.RespWriter;
-import redis.Value;
+import redis.resp.RespWriter;
+import redis.resp.Value;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.List;
