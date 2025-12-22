@@ -11,7 +11,11 @@ public class RedisServer {
     private ServerSocket serverSocket;
 
     public RedisServer() {
-        this.port = 6379;
+        this(6379);
+    }
+
+    public RedisServer(int port) {
+        this.port = port;
         this.threadPool = Executors.newCachedThreadPool();
     }
 
