@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.net.SocketException;
 
 import redis.resp.RespParser;
+import redis.resp.RespParseException;
 import redis.resp.RespWriter;
 import redis.resp.Value;
 import java.util.logging.Level;
@@ -47,6 +48,10 @@ public class ClientHandler implements Runnable {
 
                     String command = request.array.get(0).str.toUpperCase();
                     COMMAND_PROCESSOR.executeCommand(command, db, writer, out, request.array);
+                    out.flush();
+                } catch (RespParseException e) {
+                    // Invalid RESP format - send error but keep connection open
+                    writer.writeError(out, "invalid RESP format: " + e.getMessage());
                     out.flush();
                 } catch (EOFException | SocketException e) {
                     // Abrupt or normal client disconnect

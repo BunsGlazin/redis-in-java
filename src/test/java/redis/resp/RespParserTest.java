@@ -12,55 +12,55 @@ import org.junit.jupiter.api.Test;
 
 public class RespParserTest {
 
-    private Value parse(String input) throws IOException {
+    private Value parse(String input) throws IOException, RespParseException {
         BufferedReader reader = new BufferedReader(new StringReader(input));
         return RespParser.readValue(reader);
     }
 
     @Test
-    void testSimpleString() throws IOException {
+    void testSimpleString() throws IOException, RespParseException {
         Value val = parse("+OK\r\n");
         assertEquals("string", val.typ);
         assertEquals("OK", val.str);
     }
 
     @Test
-    void testError() throws IOException {
+    void testError() throws IOException, RespParseException {
         Value val = parse("-Error message\r\n");
         assertEquals("error", val.typ);
         assertEquals("Error message", val.str);
     }
 
     @Test
-    void testInteger() throws IOException {
+    void testInteger() throws IOException, RespParseException {
         Value val = parse(":1000\r\n");
         assertEquals("integer", val.typ);
         assertEquals("1000", val.str);
     }
 
     @Test
-    void testBulkString() throws IOException {
+    void testBulkString() throws IOException, RespParseException {
         Value val = parse("$5\r\nhello\r\n");
         assertEquals("bulk", val.typ);
         assertEquals("hello", val.str);
     }
 
     @Test
-    void testEmptyBulkString() throws IOException {
+    void testEmptyBulkString() throws IOException, RespParseException {
         Value val = parse("$0\r\n\r\n");
         assertEquals("bulk", val.typ);
         assertEquals("", val.str);
     }
 
     @Test
-    void testNullBulkString() throws IOException {
+    void testNullBulkString() throws IOException, RespParseException {
         Value val = parse("$-1\r\n");
         assertEquals("null", val.typ);
         assertNull(val.str);
     }
 
     @Test
-    void testArray() throws IOException {
+    void testArray() throws IOException, RespParseException {
         Value val = parse("*2\r\n$3\r\nfoo\r\n$3\r\nbar\r\n");
         assertEquals("array", val.typ);
         assertEquals(2, val.array.size());
@@ -69,7 +69,7 @@ public class RespParserTest {
     }
 
     @Test
-    void testNestedArray() throws IOException {
+    void testNestedArray() throws IOException, RespParseException {
         // *2\r\n *1\r\n $3\r\nfoo\r\n $3\r\nbar\r\n
         Value val = parse("*2\r\n*1\r\n$3\r\nfoo\r\n$3\r\nbar\r\n");
         assertEquals("array", val.typ);
@@ -84,7 +84,7 @@ public class RespParserTest {
     }
 
     @Test
-    void testEmptyArray() throws IOException {
+    void testEmptyArray() throws IOException, RespParseException {
         Value val = parse("*0\r\n");
         assertEquals("array", val.typ);
         assertEquals(0, val.array.size());
@@ -92,11 +92,11 @@ public class RespParserTest {
 
     @Test
     void testUnknownPrefix() {
-        assertThrows(IOException.class, () -> parse("?invalid\r\n"));
+        assertThrows(RespParseException.class, () -> parse("?invalid\r\n"));
     }
 
     @Test
-    void testEOF() throws IOException {
+    void testEOF() throws IOException, RespParseException {
         Value val = parse("");
         assertNull(val);
     }
