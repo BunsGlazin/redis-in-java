@@ -28,11 +28,15 @@ import redis.commands.KeysCommand;
 import redis.commands.MGetCommand;
 import redis.commands.MSetCommand;
 import redis.commands.PingCommand;
+import redis.commands.PublishCommand;
 import redis.commands.SetCommand;
 import redis.commands.SetnxCommand;
 import redis.commands.StrlenCommand;
+import redis.commands.SubscribeCommand;
 import redis.commands.TTLCommand;
 import redis.commands.TypeCommand;
+import redis.commands.UnsubscribeCommand;
+import redis.pubsub.PubSubManager;
 import redis.resp.RespWriter;
 import redis.resp.Value;
 
@@ -41,8 +45,10 @@ import java.io.*;
 public class CommandProcessor {
 
     private final Map<String, Command> commands = new HashMap<>();
+    private final PubSubManager pubsub;
 
-    public CommandProcessor() {
+    public CommandProcessor(PubSubManager pubsub) {
+        this.pubsub = pubsub;
         registerCommands();
     }
 
@@ -77,6 +83,9 @@ public class CommandProcessor {
         commands.put("FLUSHALL", new FlushAllCommand());
         commands.put("TYPE", new TypeCommand());
         commands.put("COMMAND", new CommandCommand());
+        commands.put("SUBSCRIBE", new SubscribeCommand(pubsub));
+        commands.put("UNSUBSCRIBE", new UnsubscribeCommand(pubsub));
+        commands.put("PUBLISH", new PublishCommand(pubsub));
         // Add others...
     }
 
