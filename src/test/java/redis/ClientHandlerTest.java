@@ -3,6 +3,9 @@ package redis;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.*;
+
+import redis.pubsub.PubSubManager;
+
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.*;
@@ -12,6 +15,7 @@ class ClientHandlerTest {
     private ServerSocket serverSocket;
     private ExecutorService executor;
     private Database db;
+    private PubSubManager pubsub;
 
     private static String resp(String... parts) {
         StringBuilder sb = new StringBuilder();
@@ -28,6 +32,7 @@ class ClientHandlerTest {
         serverSocket = new ServerSocket(0); // random free port
         executor = Executors.newCachedThreadPool();
         db = new Database();
+        pubsub = new PubSubManager();
     }
 
     @AfterEach
@@ -40,7 +45,7 @@ class ClientHandlerTest {
         executor.submit(() -> {
             try {
                 Socket client = serverSocket.accept();
-                new ClientHandler(client, db).run();
+                new ClientHandler(client, db, pubsub).run();
             } catch (IOException ignored) {
             }
         });

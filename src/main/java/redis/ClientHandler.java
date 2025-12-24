@@ -5,9 +5,12 @@ import java.net.Socket;
 import java.net.SocketException;
 
 import redis.resp.RespParser;
+import redis.pubsub.PubSubManager;
 import redis.resp.RespParseException;
 import redis.resp.RespWriter;
 import redis.resp.Value;
+
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,19 +20,29 @@ public class ClientHandler implements Runnable {
 
     private final Socket client;
     private final Database db;
+    private final PubSubManager pubsub;
     private final RespWriter writer = new RespWriter();
-    private static final CommandProcessor COMMAND_PROCESSOR = new CommandProcessor();
+    private final CommandProcessor commandProcessor;
+    private BufferedWriter out; // Stored as field for cleanup access
 
-    public ClientHandler(Socket client, Database sharedDB) {
+    public ClientHandler(Socket client, Database sharedDB, PubSubManager pubsub) {
         this.client = client;
         this.db = sharedDB;
+        this.pubsub = pubsub;
+        this.commandProcessor = new CommandProcessor(pubsub);
+    }
+
+    private static final Set<String> PUBSUB_ALLOWED_COMMANDS = Set.of(
+            "SUBSCRIBE", "UNSUBSCRIBE", "PSUBSCRIBE", "PUNSUBSCRIBE", "PING", "QUIT");
+
+    private boolean isPubSubAllowedCommand(String command) {
+        return PUBSUB_ALLOWED_COMMANDS.contains(command);
     }
 
     @Override
     public void run() {
-        try (
-                BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-                BufferedWriter out = new BufferedWriter(new OutputStreamWriter(client.getOutputStream()))) {
+        try (BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()))) {
+            out = new BufferedWriter(new OutputStreamWriter(client.getOutputStream()));
             while (true) {
                 try {
                     // Parse next RESP message
@@ -47,7 +60,12 @@ public class ClientHandler implements Runnable {
                     }
 
                     String command = request.array.get(0).str.toUpperCase();
-                    COMMAND_PROCESSOR.executeCommand(command, db, writer, out, request.array);
+
+                    if (pubsub.isSubscribed(out) && !isPubSubAllowedCommand(command)) {
+                        continue;
+                    }
+
+                    commandProcessor.executeCommand(command, db, writer, out, request.array);
                     out.flush();
                 } catch (RespParseException e) {
                     // Invalid RESP format - send error but keep connection open
@@ -77,6 +95,13 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             LOG.log(Level.WARNING, "Failed to initialize client handler for " + client.getRemoteSocketAddress(), e);
         } finally {
+            if (out != null) {
+                pubsub.unsubscribeAll(out); // Clean up subscriptions
+                try {
+                    out.close();
+                } catch (IOException ignored) {
+                }
+            }
             try {
                 client.close();
             } catch (IOException e) {

@@ -3,6 +3,9 @@ package redis;
 import java.io.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import redis.pubsub.PubSubManager;
+
 import java.net.*;
 import java.util.concurrent.*;
 
@@ -13,6 +16,7 @@ public class RedisServer {
     private final int port;
     private final ExecutorService threadPool;
     private final Database db = new Database();
+    private final PubSubManager pubsub = new PubSubManager();
     private ServerSocket serverSocket;
 
     private volatile boolean running = true;
@@ -45,7 +49,7 @@ public class RedisServer {
                 try {
                     Socket clientSocket = serverSocket.accept();
                     LOG.info(() -> "New client connected: " + clientSocket.getRemoteSocketAddress());
-                    threadPool.submit(new ClientHandler(clientSocket, db));
+                    threadPool.submit(new ClientHandler(clientSocket, db, pubsub));
                 } catch (SocketException e) {
                     if (running) {
                         LOG.log(Level.WARNING, "Socket error", e);
