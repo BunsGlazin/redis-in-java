@@ -19,7 +19,11 @@ public class Database {
 
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, String>> hashStore = new ConcurrentHashMap<>();
 
-    private final ScheduledExecutorService cleaner = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService cleaner = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r, "expiry-cleaner");
+        t.setDaemon(true);
+        return t;
+    });
 
     public Database() {
         this(new SystemClock());
@@ -34,17 +38,16 @@ public class Database {
     private void removeSampledKeysIfExpired() {
         long now = clock.nowMillis();
         List<Map.Entry<String, Long>> entriesToCheck = getRandomExpiryEntries(20);
-        int expiredCount = 0;
-        for (Map.Entry<String, Long> e : entriesToCheck) {
-            if (e.getValue() <= now) {
-                expiredCount++;
-                String key = e.getKey();
-                removeExpiredKey(key);
+        int expiredCount = 20;
+        while (expiredCount / (double) entriesToCheck.size() > 0.25) {
+            expiredCount = 0;
+            for (Map.Entry<String, Long> e : entriesToCheck) {
+                if (e.getValue() <= now) {
+                    expiredCount++;
+                    String key = e.getKey();
+                    removeExpiredKey(key);
+                }
             }
-        }
-
-        if (expiredCount / (double) entriesToCheck.size() > 0.25) {
-            removeSampledKeysIfExpired();
         }
     }
 
